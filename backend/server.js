@@ -24,10 +24,11 @@ const server = http.createServer(app);
 
 // Allowed origins for CORS
 const allowedOrigins = [
-  "http://localhost:5173", // Vite dev server
-  "http://localhost:4173", // Vite preview server
-  "http://localhost:3000", // Alternative port
-  process.env.FRONTEND_URL, // Production URL from .env
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:4173",
+  "https://yourscodemart.netlify.app",
 ].filter(Boolean);
 
 // Socket.io setup
@@ -57,12 +58,11 @@ app.use(
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log("Blocked by CORS:", origin);
-        callback(new Error("Not allowed by CORS"));
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = `The CORS policy does not allow access from origin ${origin}`;
+        return callback(new Error(msg), false);
       }
+      return callback(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -121,7 +121,7 @@ app.use((req, res) => {
 });
 
 // Connect to MongoDB and start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 mongoose
   .connect(process.env.MONGODB_URI)
