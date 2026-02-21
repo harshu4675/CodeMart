@@ -1,8 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
-const sendEmail = require("../utils/sendEmail");
-const sendWhatsApp = require("../utils/sendWhatsApp");
 
 // @desc    Create order
 // @route   POST /api/orders

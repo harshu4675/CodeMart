@@ -17,6 +17,7 @@ const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 // Initialize express
 const app = express();
@@ -49,15 +50,14 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
+
 app.use(morgan("dev"));
 
 // CORS configuration
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
-
       if (allowedOrigins.indexOf(origin) === -1) {
         const msg = `The CORS policy does not allow access from origin ${origin}`;
         return callback(new Error(msg), false);
@@ -73,7 +73,31 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Static files
+// Debug routes
+app.get("/api/debug/razorpay", (req, res) => {
+  res.json({
+    hasKeyId: !!process.env.RAZORPAY_KEY_ID,
+    hasKeySecret: !!process.env.RAZORPAY_KEY_SECRET,
+    keyIdPrefix: process.env.RAZORPAY_KEY_ID?.substring(0, 12),
+    keyIdLength: process.env.RAZORPAY_KEY_ID?.length,
+    secretLength: process.env.RAZORPAY_KEY_SECRET?.length,
+    nodeEnv: process.env.NODE_ENV,
+    isLiveKey: process.env.RAZORPAY_KEY_ID?.startsWith("rzp_live"),
+    isTestKey: process.env.RAZORPAY_KEY_ID?.startsWith("rzp_test"),
+  });
+});
+
+// ✅ ADD THIS DEBUG ROUTE
+app.get("/api/debug/email", (req, res) => {
+  res.json({
+    hasEmailUser: !!process.env.EMAIL_USER,
+    hasEmailPassword: !!process.env.EMAIL_APP_PASSWORD,
+    emailUser: process.env.EMAIL_USER,
+    passwordLength: process.env.EMAIL_APP_PASSWORD?.length,
+    envLoaded: process.env.NODE_ENV,
+  });
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // API Routes
@@ -82,23 +106,31 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "CodeMart API is running" });
+  res.json({
+    status: "OK",
+    message: "CodeMart API is running",
+    environment: process.env.NODE_ENV,
+    razorpayMode: process.env.RAZORPAY_KEY_ID?.startsWith("rzp_live")
+      ? "LIVE"
+      : "TEST",
+  });
 });
 
 // Socket.io connection
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  console.log("✅ Client connected:", socket.id);
 
   socket.on("join-admin", () => {
     socket.join("admin-room");
-    console.log("Admin joined admin-room");
+    console.log("👨‍💼 Admin joined admin-room");
   });
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+    console.log("❌ Client disconnected:", socket.id);
   });
 });
 
@@ -112,7 +144,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - KEEP THIS LAST
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -121,7 +153,7 @@ app.use((req, res) => {
 });
 
 // Connect to MongoDB and start server
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -129,6 +161,10 @@ mongoose
     console.log("✅ MongoDB Connected Successfully");
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+      console.log(
+        `💳 Razorpay Mode: ${process.env.RAZORPAY_KEY_ID?.startsWith("rzp_live") ? "LIVE 🟢" : "TEST 🟡"}`,
+      );
       console.log(`📡 Allowed origins:`, allowedOrigins);
     });
   })

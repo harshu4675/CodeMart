@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+// Protect routes - require authentication
 exports.protect = async (req, res, next) => {
   let token;
 
@@ -29,6 +30,14 @@ exports.protect = async (req, res, next) => {
       });
     }
 
+    // ✅ OPTIONAL: Check if user is verified (uncomment if needed)
+    // if (!req.user.isVerified) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Please verify your email to access this resource",
+    //   });
+    // }
+
     next();
   } catch (error) {
     return res.status(401).json({
@@ -38,6 +47,7 @@ exports.protect = async (req, res, next) => {
   }
 };
 
+// Authorize specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

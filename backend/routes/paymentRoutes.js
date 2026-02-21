@@ -8,9 +8,16 @@ const {
 } = require("../controllers/paymentController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
+// Create order - requires login
 router.post("/create-order", protect, createRazorpayOrder);
+
+// Verify payment - requires login
 router.post("/verify", protect, verifyPayment);
-router.get("/:paymentId", protect, getPaymentDetails);
+
+// Get payment details - admin only
+router.get("/:paymentId", protect, authorize("admin"), getPaymentDetails);
+
+// Refund payment - admin only
 router.post("/refund/:paymentId", protect, authorize("admin"), refundPayment);
 
 module.exports = router;
